@@ -1,0 +1,23 @@
+name: discord-nitro-gen
+version: "1.0"
+author: Sebbl
+about: Generates nitro codes and checks them if enabled
+subcommands:
+    - gen:
+        about: Generates the codes and saves them to a file
+        version: "1.0"
+        author: Sebbl
+        args:
+            - AMOUNT:
+                help: How many codes should be generated
+                required: true
+                index: 1
+    - check:
+        about: Checks the codes in the files for validity
+        version: "1.0"
+        author: Sebbl
+        # args:
+            # - RANGE:
+            #     help: what range of codes should be checked, empty to check the whole file
+            #     required: false
+            #     index: 1
