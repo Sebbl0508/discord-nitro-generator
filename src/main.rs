@@ -1,6 +1,7 @@
 use clap::{load_yaml, App};
 use num_format::{Locale, ToFormattedString};
-
+use std::io::BufRead;
+use reqwest::Client;
 
 
 fn main() {
@@ -62,28 +63,126 @@ fn main() {
 fn check_codes(_url: String) -> Result<(), Box<dyn std::error::Error>> {
     use std::io::{prelude::*, BufReader};
     let file = std::fs::File::open("./codes.txt").expect("The file 'codes.txt' does not exist!");
-
     let buf = BufReader::new(file);
+
+    // Proxy stuff
+    let proxy_file = std::fs::File::open("./proxys.txt").expect("The 'proxys.txt' file does not exist");
+    let proxy_buf = BufReader::new(proxy_file);
+    let proxies: Vec<String> = proxy_buf
+        .lines()
+        .map(|l| l.expect("[ERROR] Could not parse line"))
+        .collect();
+    let mut curr_proxy = 0;
+    // let mut proxy = reqwest::Proxy::https(&proxies[curr_proxy].clone());
+
     let lines: Vec<String> = buf
         .lines()
-        .map(|l| l.expect("Could not parse line"))
+        .map(|l| l.expect("[ERROR] Could not parse line"))
         .collect();
+    let mut client: reqwest::blocking::Client;
 
-    for (i, item) in lines.iter().enumerate() {
-        let res = reqwest::blocking::get(format!("https://discordapp.com/api/v6/entitlements/gift-codes/{}?with_application=false&with_subscription_plan=true", item).as_str())?
-            .text()?;
+    // match proxy {
+    //     Ok(i) => {
+    //         client = reqwest::blocking::Client::builder()
+    //             .proxy(i)
+    //             .build()?;
+    //     },
+    //     Err(_e) => {
+    //         client = reqwest::blocking::Client::builder()
+    //             .build()?;
+    //         println!("[ERROR] no proxies");
+    //     }
+    // }
+    client = reqwest::blocking::Client::builder()
+        .build()?;
 
-        let res_json: serde_json::Value = serde_json::from_str(res.as_str())?;
 
-        if res_json["code"] != 10038 && res_json["global"] != false {
-            println!("VALID CODE: {}", item);
-        } else {
-            if res_json["message"] == "You are being rate limited." {
-                println!("{}. Rate limit, retry after {}", i + 1, res_json["retry_after"]);
-            } else {
-                println!("{}. invalid code", i + 1);
+
+    for (idx, item) in lines.iter().enumerate() {
+        let res = client.get(format!("https://discordapp.com/api/v6/entitlements/gift-codes/{}?with_application=false&with_subscription_plan=true", item).as_str())
+            .send();
+
+        // let res = reqwest::blocking::get(format!("https://discordapp.com/api/v6/entitlements/gift-codes/{}?with_application=false&with_subscription_plan=true", item).as_str())?
+        //     .text()?;
+        let res_json: serde_json::Value;
+
+        match res {
+            Ok(i) => {
+                match i.text() {
+                    Ok(ii) => {
+                        res_json = serde_json::from_str(ii.as_str())?;
+                        if res_json["code"] != 10038 && res_json["global"] != false {
+                            println!("VALID CODE: {}", item);
+                        } else {
+                            if res_json["message"] == "You are being rate limited." {
+                                println!("{}. Rate limit, sleeping for {}", idx + 1, res_json["retry_after"]);
+
+                                let sleep_dur = res_json["retry_after"].as_i64().unwrap_or(50);
+
+                                std::thread::sleep(std::time::Duration::from_millis(sleep_dur as u64));
+                                // curr_proxy += 1;
+                                // println!("New proxy: {}", proxies[curr_proxy].clone());
+                                // proxy = reqwest::Proxy::https(&proxies[curr_proxy].clone());
+                                // match proxy {
+                                //     Ok(i) => {
+                                //         client = reqwest::blocking::Client::builder()
+                                //             .proxy(i)
+                                //             .build()?;
+                                //     },
+                                //     Err(e) => {
+                                //         println!("{}", e);
+                                //     }
+                                // }
+                            } else {
+                                println!("{}. invalid code", idx + 1);
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        println!("{}", e);
+                    }
+                }
+            },
+            Err(e) => {
+                println!("[ERROR] {}", e);
+                // curr_proxy += 1;
+                // println!("New proxy: {}", proxies[curr_proxy].clone());
+                // proxy = reqwest::Proxy::https(&proxies[curr_proxy].clone());
+                // match proxy {
+                //     Ok(i) => {
+                //         client = reqwest::blocking::Client::builder()
+                //             .proxy(i)
+                //             .build()?;
+                //     },
+                //     Err(e) => {
+                //         println!("{}", e);
+                //     }
+                // }
             }
         }
+
+//        let res_json: serde_json::Value = serde_json::from_str(res.as_str())?;
+//         if res_json["code"] != 10038 && res_json["global"] != false {
+//             println!("VALID CODE: {}", item);
+//         } else {
+//             if res_json["message"] == "You are being rate limited." {
+//                 println!("{}. Rate limit, retry after {}", i + 1, res_json["retry_after"]);
+//             } else {
+//                 curr_proxy += 1;
+//                 proxy = reqwest::Proxy::http(&proxies[curr_proxy].clone());
+//                 match proxy {
+//                     Ok(i) => {
+//                         client = reqwest::blocking::Client::builder()
+//                             .proxy(i)
+//                             .build()?;
+//                     },
+//                     Err(e) => {
+//                         println!("{}", e);
+//                     }
+//                 }
+//                 println!("{}. invalid code", i + 1);
+//             }
+//         }
     }
 
     Ok(())
