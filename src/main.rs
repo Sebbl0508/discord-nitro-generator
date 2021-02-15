@@ -226,13 +226,10 @@ fn generate_codes(amount: u64) -> String {
 
     let generating_time = start.elapsed();
 
-    let start = std::time::Instant::now();
-
     println!(
-        "Generated {} codes | Elapsed time: generating: {:#?}, saving: {:#?}",
+        "Generated {} codes | Elapsed time: generating & saving: {:#?}",
         amount.to_formatted_string(&Locale::de),
         generating_time,
-        start.elapsed()
     );
 
     return String::from("");
