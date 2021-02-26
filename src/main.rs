@@ -113,7 +113,8 @@ fn check_codes(_url: String) -> Result<(), Box<dyn std::error::Error>> {
                             println!("VALID CODE: {}", item);
                         } else {
                             if res_json["message"] == "You are being rate limited." {
-                                println!("{}. Rate limit, sleeping for {}", idx + 1, res_json["retry_after"]);
+                                let retry_length = res_json["retry_after"].as_i64().unwrap_or_default();
+                                println!("{}. Rate limit, sleeping for {}ms", idx + 1, retry_length.to_formatted_string(&Locale::de));
 
                                 let sleep_dur = res_json["retry_after"].as_i64().unwrap_or(50);
 
