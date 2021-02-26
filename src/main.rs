@@ -4,6 +4,7 @@ use std::io::BufRead;
 use reqwest::Client;
 
 
+
 fn main() {
     let yaml = load_yaml!("cli.yaml");
     let m = App::from(yaml).get_matches();
@@ -66,20 +67,20 @@ fn check_codes(_url: String) -> Result<(), Box<dyn std::error::Error>> {
     let buf = BufReader::new(file);
 
     // Proxy stuff
-    let proxy_file = std::fs::File::open("./proxys.txt").expect("The 'proxys.txt' file does not exist");
+    // Not active right now, since proxies are not working
+/*    let proxy_file = std::fs::File::open("./proxys.txt").expect("The 'proxys.txt' file does not exist");
     let proxy_buf = BufReader::new(proxy_file);
     let proxies: Vec<String> = proxy_buf
         .lines()
         .map(|l| l.expect("[ERROR] Could not parse line"))
         .collect();
-    let mut curr_proxy = 0;
-    // let mut proxy = reqwest::Proxy::https(&proxies[curr_proxy].clone());
+    let mut curr_proxy = 0; */
 
     let lines: Vec<String> = buf
         .lines()
         .map(|l| l.expect("[ERROR] Could not parse line"))
         .collect();
-    let mut client: reqwest::blocking::Client;
+    let client: reqwest::blocking::Client;
 
     // match proxy {
     //     Ok(i) => {
@@ -101,9 +102,6 @@ fn check_codes(_url: String) -> Result<(), Box<dyn std::error::Error>> {
     for (idx, item) in lines.iter().enumerate() {
         let res = client.get(format!("https://discordapp.com/api/v6/entitlements/gift-codes/{}?with_application=false&with_subscription_plan=true", item).as_str())
             .send();
-
-        // let res = reqwest::blocking::get(format!("https://discordapp.com/api/v6/entitlements/gift-codes/{}?with_application=false&with_subscription_plan=true", item).as_str())?
-        //     .text()?;
         let res_json: serde_json::Value;
 
         match res {
