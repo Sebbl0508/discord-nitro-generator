@@ -2,7 +2,7 @@ use clap::{load_yaml, App};
 use num_format::{Locale, ToFormattedString};
 use std::io::BufRead;
 use reqwest::Client;
-
+use std::fs::OpenOptions;
 
 
 fn main() {
@@ -26,16 +26,6 @@ fn main() {
         #[allow(unused_imports)]
         use std::io::{stdin, stdout, Write};
         let url = String::new();
-
-        // println!("Please input the webhook link!");
-        // print!("> ");
-        // let _ = stdout().flush();
-
-        // Get webhook URL from user
-        // stdin().read_line(&mut url).expect("Incorrect string!");
-
-        // Remove trailing newline
-        // url.truncate(url.len() - 1);
 
         // Fetch range of lines to check
         // TODO: Implement RANGE check
@@ -64,17 +54,13 @@ fn main() {
 fn check_codes(_url: String) -> Result<(), Box<dyn std::error::Error>> {
     use std::io::{prelude::*, BufReader};
     let file = std::fs::File::open("./codes.txt").expect("The file 'codes.txt' does not exist!");
+
+    let aaa = std::fs::File::create("valids.txt").expect("Could not create 'valids.txt'");
+
     let buf = BufReader::new(file);
 
     // Proxy stuff
     // Not active right now, since proxies are not working
-/*    let proxy_file = std::fs::File::open("./proxys.txt").expect("The 'proxys.txt' file does not exist");
-    let proxy_buf = BufReader::new(proxy_file);
-    let proxies: Vec<String> = proxy_buf
-        .lines()
-        .map(|l| l.expect("[ERROR] Could not parse line"))
-        .collect();
-    let mut curr_proxy = 0; */
 
     let lines: Vec<String> = buf
         .lines()
@@ -82,18 +68,6 @@ fn check_codes(_url: String) -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     let client: reqwest::blocking::Client;
 
-    // match proxy {
-    //     Ok(i) => {
-    //         client = reqwest::blocking::Client::builder()
-    //             .proxy(i)
-    //             .build()?;
-    //     },
-    //     Err(_e) => {
-    //         client = reqwest::blocking::Client::builder()
-    //             .build()?;
-    //         println!("[ERROR] no proxies");
-    //     }
-    // }
     client = reqwest::blocking::Client::builder()
         .build()?;
 
@@ -111,6 +85,8 @@ fn check_codes(_url: String) -> Result<(), Box<dyn std::error::Error>> {
                         res_json = serde_json::from_str(ii.as_str())?;
                         if res_json["code"] != 10038 && res_json["global"] != false {
                             println!("VALID CODE: {}", item);
+                            let mut juhu = OpenOptions::new().append(true).open("valids.txt").expect("Could not open 'valids.txt'");
+                            juhu.write_all(item.as_bytes()).expect("Writing 'valids.txt' failed");
                         } else {
                             if res_json["message"] == "You are being rate limited." {
                                 let retry_length = res_json["retry_after"].as_i64().unwrap_or_default();
@@ -119,19 +95,6 @@ fn check_codes(_url: String) -> Result<(), Box<dyn std::error::Error>> {
                                 let sleep_dur = res_json["retry_after"].as_i64().unwrap_or(50);
 
                                 std::thread::sleep(std::time::Duration::from_millis(sleep_dur as u64));
-                                // curr_proxy += 1;
-                                // println!("New proxy: {}", proxies[curr_proxy].clone());
-                                // proxy = reqwest::Proxy::https(&proxies[curr_proxy].clone());
-                                // match proxy {
-                                //     Ok(i) => {
-                                //         client = reqwest::blocking::Client::builder()
-                                //             .proxy(i)
-                                //             .build()?;
-                                //     },
-                                //     Err(e) => {
-                                //         println!("{}", e);
-                                //     }
-                                // }
                             } else {
                                 println!("{}. invalid code", idx + 1);
                             }
@@ -144,44 +107,8 @@ fn check_codes(_url: String) -> Result<(), Box<dyn std::error::Error>> {
             },
             Err(e) => {
                 println!("[ERROR] {}", e);
-                // curr_proxy += 1;
-                // println!("New proxy: {}", proxies[curr_proxy].clone());
-                // proxy = reqwest::Proxy::https(&proxies[curr_proxy].clone());
-                // match proxy {
-                //     Ok(i) => {
-                //         client = reqwest::blocking::Client::builder()
-                //             .proxy(i)
-                //             .build()?;
-                //     },
-                //     Err(e) => {
-                //         println!("{}", e);
-                //     }
-                // }
             }
         }
-
-//        let res_json: serde_json::Value = serde_json::from_str(res.as_str())?;
-//         if res_json["code"] != 10038 && res_json["global"] != false {
-//             println!("VALID CODE: {}", item);
-//         } else {
-//             if res_json["message"] == "You are being rate limited." {
-//                 println!("{}. Rate limit, retry after {}", i + 1, res_json["retry_after"]);
-//             } else {
-//                 curr_proxy += 1;
-//                 proxy = reqwest::Proxy::http(&proxies[curr_proxy].clone());
-//                 match proxy {
-//                     Ok(i) => {
-//                         client = reqwest::blocking::Client::builder()
-//                             .proxy(i)
-//                             .build()?;
-//                     },
-//                     Err(e) => {
-//                         println!("{}", e);
-//                     }
-//                 }
-//                 println!("{}. invalid code", i + 1);
-//             }
-//         }
     }
 
     Ok(())
