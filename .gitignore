@@ -1,3 +1,4 @@
 /target
 src/proxys.txt
 .idea
+Cargo.lock
